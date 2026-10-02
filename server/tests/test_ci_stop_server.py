@@ -7,20 +7,25 @@ REPO = Path(__file__).resolve().parents[2]
 SCRIPT = REPO / "scripts/ci-stop-server.sh"
 
 
-def run(tmp_path, state, instance_id="i-abc"):
+def run(tmp_path, state, instance_id="i-abc", wait_stopped_exit=0):
     fake = tmp_path / "aws"
     log = tmp_path / "calls"
     fake.write_text(f"""#!/bin/bash
 echo "$*" >> "{log}"
 case "$1 $2" in
   "ec2 describe-instances") echo "{state}" ;;
+  "ec2 wait")
+    if [[ "$3" == "instance-stopped" ]]; then
+      exit {wait_stopped_exit}
+    fi
+    exit 0 ;;
   "ssm send-command") echo "cmd-1" ;;
 esac
 exit 0
 """)
     fake.chmod(fake.stat().st_mode | stat.S_IEXEC)
     env = {**os.environ, "PATH": f"{tmp_path}:{os.environ['PATH']}",
-           "WARN_FIRST_SECONDS": "0", "WARN_SECOND_SECONDS": "0"}
+           "WARN_FIRST_SECONDS": "0", "WARN_SECOND_SECONDS": "0", "SSM_RETRY_SECONDS": "0"}
     args = ["bash", str(SCRIPT)] + ([instance_id] if instance_id else [])
     result = subprocess.run(args, env=env, capture_output=True, text=True)
     calls = log.read_text().splitlines() if log.exists() else []
@@ -53,3 +58,24 @@ def test_stopping_instance_just_waits(tmp_path):
     assert result.returncode == 0
     assert any(c.startswith("ec2 wait instance-stopped") for c in calls)
     assert not any(c.startswith("ssm send-command") for c in calls)
+
+
+def test_pending_instance_waits_then_warns_and_shuts_down(tmp_path):
+    result, calls = run(tmp_path, "pending")
+    assert result.returncode == 0, result.stderr
+    # ec2 wait instance-running must come before first ssm send-command
+    wait_running_idx = next(i for i, c in enumerate(calls) if "ec2 wait instance-running" in c)
+    first_send_idx = next(i for i, c in enumerate(calls) if c.startswith("ssm send-command"))
+    assert wait_running_idx < first_send_idx
+    # Three sends in order
+    sends = [c for c in calls if c.startswith("ssm send-command")]
+    assert "Shutdown for updates in 5 minutes" in sends[0]
+    assert "Shutdown for updates in 1 minute" in sends[1]
+    assert "mc-shutdown.sh" in sends[2]
+    # Wait for stopped at end
+    assert any(c.startswith("ec2 wait instance-stopped") for c in calls)
+
+
+def test_stop_timeout_fails_the_job(tmp_path):
+    result, calls = run(tmp_path, "running", wait_stopped_exit=255)
+    assert result.returncode != 0

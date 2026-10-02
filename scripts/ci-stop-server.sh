@@ -15,13 +15,13 @@ state() {
 run_on_instance() {
   local params
   params=$(printf '{"commands":["%s"]}' "$1")
-  for attempt in 1 2 3 4 5 6; do
+  for attempt in 1 2 3 4 5 6 7 8 9 10 11 12; do
     if aws ssm send-command --instance-ids "$id" --document-name AWS-RunShellScript \
         --parameters "$params" --query Command.CommandId --output text; then
       return 0
     fi
     echo "send-command attempt $attempt failed (SSM agent not ready?); retrying"
-    sleep 10
+    sleep "${SSM_RETRY_SECONDS:-10}"
   done
   return 1
 }
