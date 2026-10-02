@@ -49,6 +49,22 @@ def fake_server():
     srv.close()
 
 
+@pytest.fixture
+def fake_server_closes_mid_handshake():
+    """A server that accepts connection then immediately closes (simulates mid-handshake failure)."""
+    srv = socket.socket()
+    srv.bind(("127.0.0.1", 0))
+    srv.listen(1)
+
+    def serve():
+        conn, _ = srv.accept()
+        conn.close()  # Close immediately without responding
+
+    threading.Thread(target=serve, daemon=True).start()
+    yield srv.getsockname()[1]
+    srv.close()
+
+
 def test_command_round_trip(fake_server):
     with Rcon("127.0.0.1", fake_server, "pw") as rcon:
         assert rcon.command("say hi") == "ran: say hi"
@@ -69,25 +85,34 @@ def test_connection_refused_raises_oserror():
             pass
 
 
-def test_socket_closed_on_handshake_failure(fake_server):
-    """Verify that socket is closed when handshake fails (bad password)."""
-    rcon = Rcon("127.0.0.1", fake_server, "wrong")
-    with pytest.raises(RconAuthError):
+def test_socket_closed_on_handshake_failure(fake_server_closes_mid_handshake, monkeypatch):
+    """Verify that socket is closed when handshake fails (connection closed)."""
+    import mcrcon as mcrcon_module
+
+    # Capture the socket created by Rcon
+    captured_socket = []
+    original_create_connection = socket.create_connection
+
+    def mock_create_connection(*args, **kwargs):
+        sock = original_create_connection(*args, **kwargs)
+        captured_socket.append(sock)
+        return sock
+
+    monkeypatch.setattr(mcrcon_module.socket, "create_connection", mock_create_connection)
+
+    # Try to create RCON connection to a server that closes mid-handshake
+    rcon = Rcon("127.0.0.1", fake_server_closes_mid_handshake, "pw")
+    # Connection errors during handshake raise OSError (ConnectionResetError, etc)
+    with pytest.raises((RconError, OSError)):
         with rcon:
             pass
-    # After RconAuthError, the __exit__ method should have closed the socket
-    # Verify the socket object exists and is actually closed
-    assert rcon._sock is not None
-    # Try to get the file descriptor - if socket is closed, this should raise
-    # or return -1 (platform dependent)
-    try:
-        fd = rcon._sock.fileno()
-        # If fileno succeeds and returns a valid fd, socket might not be closed
-        # Some platforms mark closed sockets differently, so just verify socket exists
-        assert fd >= 0 or fd == -1
-    except (OSError, ValueError, TypeError):
-        # Expected on some platforms when socket is closed
-        pass
+
+    # Verify socket was captured and is now closed
+    assert len(captured_socket) == 1, "Socket should be created once"
+    sock = captured_socket[0]
+
+    # Verify socket is closed: fileno() should return -1
+    assert sock.fileno() == -1, "Socket should be closed (fileno() == -1)"
 
 
 @pytest.mark.parametrize("text,expected", [
