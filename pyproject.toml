@@ -1,0 +1,3 @@
+[tool.pytest.ini_options]
+testpaths = ["lambda/waker/tests", "server/lib/tests", "server/tests"]
+pythonpath = ["lambda/waker", "server/lib"]

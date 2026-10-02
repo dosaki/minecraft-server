@@ -1,0 +1,75 @@
+name: Deploy
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      TF_VAR_aws_profile: ""
+      TF_VAR_budget_email: ${{ secrets.BUDGET_EMAIL }}
+      AWS_REGION: ${{ vars.AWS_REGION }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.2
+          terraform_wrapper: false
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/gha-minecraft-deploy
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Init
+        run: terraform -chdir=terraform init -input=false
+
+      - name: Plan
+        id: plan
+        run: |
+          set +e
+          terraform -chdir=terraform plan -input=false -detailed-exitcode -out=tfplan
+          code=$?
+          set -e
+          case $code in
+            0) echo "changes=false" >> "$GITHUB_OUTPUT"; echo "No changes; server untouched." ;;
+            2) echo "changes=true" >> "$GITHUB_OUTPUT" ;;
+            *) exit 1 ;;
+          esac
+
+      - name: Enter maintenance
+        id: maintenance
+        if: steps.plan.outputs.changes == 'true'
+        run: aws ssm put-parameter --name /minecraft/maintenance --type String --value true --overwrite
+
+      - name: Warn players and stop server
+        if: steps.plan.outputs.changes == 'true'
+        run: |
+          # Only a missing output means "no instance yet"; any other failure (backend, auth) must stop the deploy.
+          # With empty state terraform exits 0 with no output; with other outputs it exits 1 with "not found".
+          if id=$(terraform -chdir=terraform output -no-color -raw instance_id 2>/tmp/out.err); then
+            :
+          elif grep -qiE 'not found|no outputs' /tmp/out.err; then
+            id=""
+          else
+            cat /tmp/out.err >&2
+            exit 1
+          fi
+          scripts/ci-stop-server.sh "$id"
+
+      - name: Apply
+        if: steps.plan.outputs.changes == 'true'
+        run: terraform -chdir=terraform apply -input=false tfplan
+
+      - name: Exit maintenance
+        if: always() && steps.maintenance.outcome == 'success'
+        run: aws ssm put-parameter --name /minecraft/maintenance --type String --value false --overwrite

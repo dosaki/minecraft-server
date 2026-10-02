@@ -1,0 +1,6 @@
+[Unit]
+Description=Back up the world to S3 (GFS)
+
+[Service]
+Type=oneshot
+ExecStart=/opt/minecraft/bin/mc-backup.sh

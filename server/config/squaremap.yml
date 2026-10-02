@@ -1,0 +1,5 @@
+settings:
+  web-directory:
+    path: web
+  internal-webserver:
+    enabled: false

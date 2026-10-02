@@ -1,0 +1,23 @@
+#!/usr/bin/env python3
+"""Print GFS keys for a backup. Existing keys are read from stdin, one per line."""
+import argparse
+import os
+import sys
+from datetime import datetime
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "lib"))
+from gfs import keys_for_backup  # noqa: E402
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--now", required=True, help="ISO-8601 UTC timestamp, e.g. 2026-10-02T21:14:00Z")
+    args = parser.parse_args()
+    now = datetime.fromisoformat(args.now.replace("Z", "+00:00"))
+    existing = [line.strip() for line in sys.stdin if line.strip()]
+    print("\n".join(keys_for_backup(now, existing)))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

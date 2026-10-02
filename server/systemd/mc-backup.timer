@@ -1,0 +1,6 @@
+[Unit]
+Description=Hourly world backup while running
+
+[Timer]
+OnBootSec=60min
+OnUnitActiveSec=60min

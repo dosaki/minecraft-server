@@ -1,0 +1,6 @@
+[Unit]
+Description=Stop the instance if no players are online
+
+[Service]
+Type=oneshot
+ExecStart=/opt/minecraft/bin/mc-idle-check.sh
