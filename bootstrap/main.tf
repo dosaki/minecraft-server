@@ -19,9 +19,12 @@ variable "aws_profile" {
   default = "dosaki"
 }
 
-variable "github_repo" {
+# GitHub issues this repo's OIDC tokens with immutable subjects ("owner@id/repo@id"),
+# so a deleted-and-recreated repo with the same name can't assume these roles.
+# Read it with: gh api repos/dosaki/minecraft-server/actions/oidc/customization/sub
+variable "github_sub_prefix" {
   type    = string
-  default = "dosaki/minecraft-server"
+  default = "repo:dosaki@1957450/minecraft-server@1402021455"
 }
 
 provider "aws" {
@@ -154,7 +157,7 @@ data "aws_iam_policy_document" "deploy_trust" {
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repo}:ref:refs/heads/main"]
+      values   = ["${var.github_sub_prefix}:ref:refs/heads/main"]
     }
   }
 }
@@ -175,8 +178,8 @@ data "aws_iam_policy_document" "plan_trust" {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
       values = [
-        "repo:${var.github_repo}:pull_request",
-        "repo:${var.github_repo}:ref:refs/heads/main",
+        "${var.github_sub_prefix}:pull_request",
+        "${var.github_sub_prefix}:ref:refs/heads/main",
       ]
     }
   }
