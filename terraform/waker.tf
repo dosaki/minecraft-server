@@ -129,3 +129,8 @@ resource "aws_cloudwatch_log_subscription_filter" "waker" {
   destination_arn = aws_lambda_function.waker.arn
   depends_on      = [aws_lambda_permission.logs]
 }
+
+import {
+  to = aws_ssm_parameter.maintenance
+  id = "/minecraft/maintenance"
+}

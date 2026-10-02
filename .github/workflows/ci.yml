@@ -1,0 +1,52 @@
+name: CI
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install pytest boto3
+      - run: python -m pytest -q
+      - run: shellcheck server/bin/*.sh scripts/*.sh
+
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.2
+          terraform_wrapper: false
+      - run: terraform fmt -check -recursive
+      - run: terraform -chdir=bootstrap init -backend=false && terraform -chdir=bootstrap validate
+      - run: terraform -chdir=terraform init -backend=false && terraform -chdir=terraform validate
+
+  plan:
+    needs: [test, terraform]
+    # Fork PRs get no OIDC token; they only run tests and lint.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    env:
+      TF_VAR_aws_profile: ""
+      TF_VAR_budget_email: ${{ secrets.BUDGET_EMAIL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.2
+          terraform_wrapper: false
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/gha-minecraft-plan
+          aws-region: ${{ vars.AWS_REGION }}
+      - run: terraform -chdir=terraform init -input=false
+      - run: terraform -chdir=terraform plan -input=false -lock=false
