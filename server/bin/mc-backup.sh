@@ -52,6 +52,6 @@ if (( ${#keys[@]} == 0 )); then echo "no backup keys generated" >&2; exit 1; fi
 
 aws s3 cp --only-show-errors "$archive" "s3://$MC_BACKUP_BUCKET/${keys[0]}"
 for key in "${keys[@]:1}"; do
-  aws s3 cp --only-show-errors "s3://$MC_BACKUP_BUCKET/${keys[0]}" "s3://$MC_BACKUP_BUCKET/$key"
+  aws s3 cp --only-show-errors --copy-props none "s3://$MC_BACKUP_BUCKET/${keys[0]}" "s3://$MC_BACKUP_BUCKET/$key"
 done
 echo "backup written: ${keys[*]}"

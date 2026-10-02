@@ -2,6 +2,14 @@ data "aws_vpc" "default" {
   default = true
 }
 
+data "aws_ec2_instance_type_offerings" "mc" {
+  location_type = "availability-zone"
+  filter {
+    name   = "instance-type"
+    values = [var.instance_type]
+  }
+}
+
 data "aws_subnets" "default" {
   filter {
     name   = "vpc-id"
@@ -10,6 +18,10 @@ data "aws_subnets" "default" {
   filter {
     name   = "default-for-az"
     values = ["true"]
+  }
+  filter {
+    name   = "availability-zone"
+    values = data.aws_ec2_instance_type_offerings.mc.locations
   }
 }
 
@@ -82,12 +94,12 @@ data "aws_iam_policy_document" "instance" {
   }
   statement {
     sid       = "WriteBackups"
-    actions   = ["s3:GetObject", "s3:PutObject"]
+    actions   = ["s3:GetObject", "s3:PutObject", "s3:AbortMultipartUpload"]
     resources = [for p in ["son", "father", "grandfather", "latest"] : "${aws_s3_bucket.backups.arn}/${p}/*"]
   }
   statement {
     sid       = "SyncMap"
-    actions   = ["s3:PutObject", "s3:DeleteObject", "s3:GetObject"]
+    actions   = ["s3:PutObject", "s3:DeleteObject", "s3:GetObject", "s3:AbortMultipartUpload"]
     resources = ["${aws_s3_bucket.map.arn}/*"]
   }
   statement {
@@ -102,6 +114,16 @@ data "aws_iam_policy_document" "instance" {
       aws_ssm_parameter.rcon.arn,
       "arn:aws:ssm:${var.region}:${local.account}:parameter/minecraft/players",
     ]
+  }
+  statement {
+    sid       = "DecryptSecrets"
+    actions   = ["kms:Decrypt"]
+    resources = ["*"]
+    condition {
+      test     = "StringEquals"
+      variable = "kms:ViaService"
+      values   = ["ssm.${var.region}.amazonaws.com"]
+    }
   }
 }
 
