@@ -40,6 +40,31 @@ data "aws_caller_identity" "current" {}
 locals {
   account = data.aws_caller_identity.current.account_id
   buckets = ["dosaki-minecraft-backups", "dosaki-minecraft-map"]
+  fqdn    = "minecraft.dosaki.net"
+}
+
+# The Minecraft zone lives here, not in the main stack, so the deploy role can be granted
+# write access to this one zone ARN and nothing else in Route 53 (the parent zone and
+# the account's other zones serve unrelated sites).
+data "aws_route53_zone" "parent" {
+  name         = "dosaki.net"
+  private_zone = false
+}
+
+resource "aws_route53_zone" "mc" {
+  name = local.fqdn
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+resource "aws_route53_record" "delegation" {
+  zone_id = data.aws_route53_zone.parent.zone_id
+  name    = local.fqdn
+  type    = "NS"
+  ttl     = 300
+  records = aws_route53_zone.mc.name_servers
 }
 
 resource "aws_s3_bucket" "state" {
@@ -88,7 +113,7 @@ data "aws_iam_policy_document" "workload_boundary" {
   statement {
     sid       = "OwnDns"
     actions   = ["route53:ChangeResourceRecordSets"]
-    resources = ["arn:aws:route53:::hostedzone/*"]
+    resources = [aws_route53_zone.mc.arn]
     condition {
       test     = "ForAllValues:StringLike"
       variable = "route53:ChangeResourceRecordSetsNormalizedRecordNames"
@@ -211,14 +236,85 @@ data "aws_iam_policy_document" "deploy" {
       values   = ["eu-west-1"]
     }
   }
+  # Route 53, CloudFront, ACM, Budgets and Logs are shared with the account's other sites:
+  # read anything, but write only to this stack's zone, names, or Project-tagged resources.
   statement {
-    sid = "GlobalAndEdgeServices"
+    sid = "ReadGlobalServices"
     actions = [
-      "route53:*", "cloudfront:*", "acm:*", "budgets:*", "logs:*",
+      "route53:Get*", "route53:List*",
+      "cloudfront:Get*", "cloudfront:List*", "cloudfront:Describe*",
+      "acm:Describe*", "acm:Get*", "acm:List*",
+      "logs:Describe*", "logs:List*",
+      "budgets:ViewBudget", "budgets:ListTagsForResource",
       "sts:GetCallerIdentity", "tag:GetResources",
       "ssm:GetCommandInvocation", "ssm:ListCommandInvocations",
       "ssm:DescribeInstanceInformation", "ssm:DescribeParameters",
     ]
+    resources = ["*"]
+  }
+  statement {
+    sid = "Route53OwnZone"
+    actions = [
+      "route53:ChangeResourceRecordSets", "route53:ChangeTagsForResource",
+      "route53:CreateQueryLoggingConfig",
+    ]
+    resources = [aws_route53_zone.mc.arn]
+  }
+  statement {
+    sid       = "Route53QueryLogConfig"
+    actions   = ["route53:DeleteQueryLoggingConfig"]
+    resources = ["arn:aws:route53:::queryloggingconfig/*"]
+  }
+  statement {
+    sid       = "CreateTaggedEdgeResources"
+    actions   = ["cloudfront:CreateDistribution", "cloudfront:TagResource", "acm:RequestCertificate", "acm:AddTagsToCertificate"]
+    resources = ["*"]
+    condition {
+      test     = "StringEquals"
+      variable = "aws:RequestTag/Project"
+      values   = ["minecraft-server"]
+    }
+  }
+  statement {
+    sid = "ManageTaggedEdgeResources"
+    actions = [
+      "cloudfront:UpdateDistribution", "cloudfront:DeleteDistribution", "cloudfront:UntagResource",
+      "cloudfront:CreateInvalidation",
+      "acm:DeleteCertificate", "acm:RemoveTagsFromCertificate", "acm:UpdateCertificateOptions",
+    ]
+    resources = ["*"]
+    condition {
+      test     = "StringEquals"
+      variable = "aws:ResourceTag/Project"
+      values   = ["minecraft-server"]
+    }
+  }
+  statement {
+    sid = "UntaggableCloudFrontConfig"
+    actions = [
+      "cloudfront:CreateOriginAccessControl", "cloudfront:UpdateOriginAccessControl",
+      "cloudfront:DeleteOriginAccessControl",
+      "cloudfront:CreateCachePolicy", "cloudfront:UpdateCachePolicy", "cloudfront:DeleteCachePolicy",
+    ]
+    resources = ["*"]
+  }
+  statement {
+    sid       = "OwnBudget"
+    actions   = ["budgets:ModifyBudget", "budgets:TagResource", "budgets:UntagResource"]
+    resources = ["arn:aws:budgets::${local.account}:budget/minecraft-server-*"]
+  }
+  statement {
+    sid     = "OwnLogGroups"
+    actions = ["logs:*"]
+    resources = [
+      "arn:aws:logs:us-east-1:${local.account}:log-group:/aws/route53/${local.fqdn}",
+      "arn:aws:logs:us-east-1:${local.account}:log-group:/aws/route53/${local.fqdn}:*",
+      "arn:aws:logs:us-east-1:${local.account}:log-group:/aws/lambda/minecraft-server-*",
+    ]
+  }
+  statement {
+    sid       = "LogResourcePolicies"
+    actions   = ["logs:PutResourcePolicy", "logs:DeleteResourcePolicy"]
     resources = ["*"]
   }
   statement {
@@ -335,16 +431,6 @@ data "aws_iam_policy_document" "deploy" {
     }
   }
   statement {
-    sid    = "OnlyMinecraftDnsChanges"
-    effect = "Deny"
-    actions = [
-      "route53:CreateTrafficPolicyInstance", "route53:UpdateTrafficPolicyInstance",
-      "route53:DeleteTrafficPolicyInstance", "route53:DisableHostedZoneDNSSEC",
-      "route53:DeactivateKeySigningKey", "route53:DeleteKeySigningKey",
-    ]
-    resources = ["*"]
-  }
-  statement {
     sid       = "ServiceLinkedRoles"
     actions   = ["iam:CreateServiceLinkedRole"]
     resources = ["*"]
@@ -360,3 +446,4 @@ resource "aws_iam_role_policy" "deploy" {
 output "deploy_role_arn" { value = aws_iam_role.deploy.arn }
 output "plan_role_arn" { value = aws_iam_role.plan.arn }
 output "workload_boundary_arn" { value = aws_iam_policy.workload_boundary.arn }
+output "mc_zone_id" { value = aws_route53_zone.mc.zone_id }

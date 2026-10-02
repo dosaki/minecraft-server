@@ -105,7 +105,7 @@ data "aws_iam_policy_document" "instance" {
   statement {
     sid       = "UpdateOwnDns"
     actions   = ["route53:ChangeResourceRecordSets"]
-    resources = [aws_route53_zone.mc.arn]
+    resources = [data.aws_route53_zone.mc.arn]
   }
   statement {
     sid     = "ReadSecrets"
@@ -162,7 +162,7 @@ resource "aws_instance" "mc" {
     region        = var.region
     backup_bucket = aws_s3_bucket.backups.bucket
     map_bucket    = aws_s3_bucket.map.bucket
-    zone_id       = aws_route53_zone.mc.zone_id
+    zone_id       = data.aws_route53_zone.mc.zone_id
     record_name   = local.fqdn
     rcon_param    = aws_ssm_parameter.rcon.name
   })

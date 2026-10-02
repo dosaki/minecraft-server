@@ -33,7 +33,7 @@ resource "aws_cloudwatch_log_resource_policy" "route53" {
 resource "aws_route53_query_log" "mc" {
   depends_on               = [aws_cloudwatch_log_resource_policy.route53]
   cloudwatch_log_group_arn = aws_cloudwatch_log_group.dns_queries.arn
-  zone_id                  = aws_route53_zone.mc.zone_id
+  zone_id                  = data.aws_route53_zone.mc.zone_id
 }
 
 data "archive_file" "waker" {

@@ -1,23 +1,13 @@
-data "aws_route53_zone" "parent" {
-  name         = var.parent_domain
+# The zone and its delegation from the parent are owned by the bootstrap stack, so the
+# deploy role's Route 53 write access can be pinned to this one zone.
+data "aws_route53_zone" "mc" {
+  name         = local.fqdn
   private_zone = false
-}
-
-resource "aws_route53_zone" "mc" {
-  name = local.fqdn
-}
-
-resource "aws_route53_record" "delegation" {
-  zone_id = data.aws_route53_zone.parent.zone_id
-  name    = local.fqdn
-  type    = "NS"
-  ttl     = 300
-  records = aws_route53_zone.mc.name_servers
 }
 
 # The instance UPSERTs its own IP on every boot; Terraform only creates the record.
 resource "aws_route53_record" "server" {
-  zone_id = aws_route53_zone.mc.zone_id
+  zone_id = data.aws_route53_zone.mc.zone_id
   name    = local.fqdn
   type    = "A"
   ttl     = 30

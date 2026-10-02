@@ -23,7 +23,7 @@ resource "aws_route53_record" "map_validation" {
   for_each = {
     for o in aws_acm_certificate.map.domain_validation_options : o.domain_name => o
   }
-  zone_id = aws_route53_zone.mc.zone_id
+  zone_id = data.aws_route53_zone.mc.zone_id
   name    = each.value.resource_record_name
   type    = each.value.resource_record_type
   ttl     = 300
@@ -121,7 +121,7 @@ resource "aws_s3_bucket_policy" "map" {
 
 resource "aws_route53_record" "map" {
   for_each = toset(["A", "AAAA"])
-  zone_id  = aws_route53_zone.mc.zone_id
+  zone_id  = data.aws_route53_zone.mc.zone_id
   name     = local.map_fqdn
   type     = each.value
   alias {
