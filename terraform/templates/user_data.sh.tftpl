@@ -1,0 +1,43 @@
+#!/bin/bash
+# First boot only: write environment, install the every-boot bootstrap unit.
+set -euo pipefail
+
+cat > /etc/minecraft.env <<'EOF'
+MC_REGION=${region}
+MC_BACKUP_BUCKET=${backup_bucket}
+MC_MAP_BUCKET=${map_bucket}
+MC_ZONE_ID=${zone_id}
+MC_RECORD_NAME=${record_name}
+MC_PLAYERS_PARAM=/minecraft/players
+MC_RCON_PARAM=${rcon_param}
+EOF
+
+cat > /usr/local/sbin/mc-fetch-config <<'EOF'
+#!/bin/bash
+set -euo pipefail
+source /etc/minecraft.env
+mkdir -p /opt/minecraft
+aws s3 sync "s3://$${MC_BACKUP_BUCKET}/config/" /opt/minecraft/ --delete --only-show-errors --region "$${MC_REGION}"
+chmod +x /opt/minecraft/bin/*
+exec /opt/minecraft/bin/mc-bootstrap.sh
+EOF
+chmod +x /usr/local/sbin/mc-fetch-config
+
+cat > /etc/systemd/system/mc-bootstrap.service <<'EOF'
+[Unit]
+Description=Fetch Minecraft config from S3 and start the server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/mc-fetch-config
+TimeoutStartSec=900
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reload
+systemctl enable --now mc-bootstrap.service
