@@ -1,0 +1,37 @@
+#!/usr/bin/env python3
+"""Send an RCON command to the local Minecraft server. Exit 1 on any failure."""
+import argparse
+import os
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "lib"))
+from mcrcon import Rcon, RconError, player_count  # noqa: E402
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--host", default="127.0.0.1")
+    parser.add_argument("--port", type=int, default=25575)
+    parser.add_argument("--password-file", default="/etc/minecraft/rcon.pass")
+    parser.add_argument("--timeout", type=float, default=10)
+    parser.add_argument("--player-count", action="store_true", help="print the online player count")
+    parser.add_argument("command", nargs="*")
+    args = parser.parse_args()
+    if not args.player_count and not args.command:
+        parser.error("a command or --player-count is required")
+    try:
+        with open(args.password_file) as f:
+            password = f.read().strip()
+        with Rcon(args.host, args.port, password, args.timeout) as rcon:
+            if args.player_count:
+                print(player_count(rcon.command("list")))
+            else:
+                print(rcon.command(" ".join(args.command)))
+    except (OSError, RconError) as e:
+        print(f"mc-rcon: {e}", file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

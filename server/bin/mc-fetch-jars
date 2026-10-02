@@ -1,0 +1,14 @@
+#!/usr/bin/env python3
+"""Ensure paper.jar and plugin jars match versions.json."""
+import json
+import os
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "lib"))
+from jars import sync_jars  # noqa: E402
+
+if __name__ == "__main__":
+    if len(sys.argv) != 3:
+        sys.exit("usage: mc-fetch-jars VERSIONS_JSON MC_HOME")
+    with open(sys.argv[1]) as f:
+        sync_jars(json.load(f), sys.argv[2])
