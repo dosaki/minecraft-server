@@ -25,25 +25,30 @@ else
   echo "RCON unavailable; archiving files as they are"
 fi
 
+set +e
 tar -C "$MC_HOME" \
   --exclude=./logs --exclude=./cache --exclude=./libraries --exclude=./versions \
   --exclude=./paper.jar --exclude='./plugins/*.jar' --exclude=./plugins/.paper-remapped \
   --exclude=./plugins/squaremap/web \
   -cf - . | zstd -q -T0 -10 -f -o "$archive"
+rc=("${PIPESTATUS[@]}")
+set -e
+if (( rc[0] > 1 || rc[1] != 0 )); then echo "archive failed: tar=${rc[0]} zstd=${rc[1]}" >&2; exit 1; fi
 
 if (( saving_paused )); then
-  "$BIN/mc-rcon" save-on >/dev/null || true
+  "$BIN/mc-rcon" save-on >/dev/null || echo "WARN: save-on failed" >&2
   saving_paused=0
 fi
 
 now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-existing=$(
-  for prefix in father/ grandfather/; do
-    aws s3api list-objects-v2 --bucket "$MC_BACKUP_BUCKET" --prefix "$prefix" \
-      --query 'Contents[].Key' --output text
-  done | tr '\t' '\n' | grep -v '^None$' || true
-)
+output_father=$(aws s3api list-objects-v2 --bucket "$MC_BACKUP_BUCKET" --prefix "father/" \
+  --query 'Contents[].Key' --output text)
+output_grandfather=$(aws s3api list-objects-v2 --bucket "$MC_BACKUP_BUCKET" --prefix "grandfather/" \
+  --query 'Contents[].Key' --output text)
+existing=$(printf '%s\n' "$output_father" "$output_grandfather" | tr '\t' '\n' | grep -v '^None$' || true)
 mapfile -t keys < <(printf '%s\n' "$existing" | "$BIN/mc-gfs-keys" --now "$now")
+
+if (( ${#keys[@]} == 0 )); then echo "no backup keys generated" >&2; exit 1; fi
 
 aws s3 cp --only-show-errors "$archive" "s3://$MC_BACKUP_BUCKET/${keys[0]}"
 for key in "${keys[@]:1}"; do
