@@ -77,7 +77,7 @@ resource "aws_iam_openid_connect_provider" "github" {
 data "aws_iam_policy_document" "workload_boundary" {
   statement {
     sid     = "Buckets"
-    actions = ["s3:ListBucket", "s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
+    actions = ["s3:ListBucket", "s3:GetObject", "s3:PutObject", "s3:DeleteObject", "s3:AbortMultipartUpload"]
     resources = flatten([for b in ["dosaki-minecraft-backups", "dosaki-minecraft-map"] :
     ["arn:aws:s3:::${b}", "arn:aws:s3:::${b}/*"]])
   }
@@ -85,18 +85,36 @@ data "aws_iam_policy_document" "workload_boundary" {
     sid       = "OwnDns"
     actions   = ["route53:ChangeResourceRecordSets"]
     resources = ["arn:aws:route53:::hostedzone/*"]
+    condition {
+      test     = "ForAllValues:StringLike"
+      variable = "route53:ChangeResourceRecordSetsNormalizedRecordNames"
+      values   = ["minecraft.dosaki.net", "*.minecraft.dosaki.net"]
+    }
+    condition {
+      test     = "Null"
+      variable = "route53:ChangeResourceRecordSetsNormalizedRecordNames"
+      values   = ["false"]
+    }
   }
   statement {
-    sid = "SsmAgentAndParams"
+    sid = "SsmAgent"
     actions = [
-      "ssm:GetParameter", "ssm:GetParameters", "ssm:UpdateInstanceInformation",
-      "ssm:ListAssociations", "ssm:ListInstanceAssociations", "ssm:DescribeAssociation",
-      "ssm:GetDocument", "ssm:DescribeDocument", "ssm:UpdateAssociationStatus",
-      "ssm:UpdateInstanceAssociationStatus", "ssm:PutInventory", "ssm:PutComplianceItems",
-      "ssm:PutConfigurePackageResult", "ssm:GetDeployablePatchSnapshotForInstance",
-      "ssm:GetManifest", "ssmmessages:*", "ec2messages:*",
+      "ssm:UpdateInstanceInformation", "ssm:ListAssociations", "ssm:ListInstanceAssociations",
+      "ssm:DescribeAssociation", "ssm:GetDocument", "ssm:DescribeDocument",
+      "ssm:UpdateAssociationStatus", "ssm:UpdateInstanceAssociationStatus", "ssm:PutInventory",
+      "ssm:PutComplianceItems", "ssm:PutConfigurePackageResult",
+      "ssm:GetDeployablePatchSnapshotForInstance", "ssm:GetManifest",
+      "ssmmessages:*", "ec2messages:*",
     ]
     resources = ["*"]
+  }
+  statement {
+    sid     = "OwnParams"
+    actions = ["ssm:GetParameter", "ssm:GetParameters", "ssm:GetParametersByPath"]
+    resources = [
+      "arn:aws:ssm:eu-west-1:${local.account}:parameter/minecraft/*",
+      "arn:aws:ssm:eu-west-1:*:parameter/aws/service/*",
+    ]
   }
   statement {
     sid       = "SecureStringViaSsm"
@@ -311,6 +329,16 @@ data "aws_iam_policy_document" "deploy" {
       variable = "route53:ChangeResourceRecordSetsNormalizedRecordNames"
       values   = ["minecraft.dosaki.net", "*.minecraft.dosaki.net"]
     }
+  }
+  statement {
+    sid    = "OnlyMinecraftDnsChanges"
+    effect = "Deny"
+    actions = [
+      "route53:CreateTrafficPolicyInstance", "route53:UpdateTrafficPolicyInstance",
+      "route53:DeleteTrafficPolicyInstance", "route53:DisableHostedZoneDNSSEC",
+      "route53:DeactivateKeySigningKey", "route53:DeleteKeySigningKey",
+    ]
+    resources = ["*"]
   }
   statement {
     sid       = "ServiceLinkedRoles"
