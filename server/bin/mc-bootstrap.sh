@@ -38,14 +38,16 @@ chown -R minecraft:minecraft "$MC_HOME"
 "$OPT/bin/mc-update-dns.sh"
 systemctl start minecraft.service mc-backup.timer mc-map-sync.timer
 
-players_error=$({ param "$MC_PLAYERS_PARAM"; } 2>&1) || players_error=$?
-if [[ "$players_error" == *"ParameterNotFound"* ]]; then
-  echo "no players parameter yet"
+err=$(mktemp)
+if players=$(param "$MC_PLAYERS_PARAM" 2>"$err"); then
+  :
+elif grep -q ParameterNotFound "$err"; then
+  echo "no players parameter yet; starting with an empty whitelist"
   players='{}'
-elif [[ -n "$players_error" && "$players_error" != "0" ]]; then
-  echo "$players_error" >&2
-  exit 1
 else
-  players="$players_error"
+  cat "$err" >&2
+  rm -f "$err"
+  exit 1
 fi
+rm -f "$err"
 printf '%s' "$players" | "$OPT/bin/mc-apply-players"
