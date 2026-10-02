@@ -1,0 +1,6 @@
+[Unit]
+Description=Sync squaremap tiles to S3
+
+[Service]
+Type=oneshot
+ExecStart=/opt/minecraft/bin/mc-map-sync.sh

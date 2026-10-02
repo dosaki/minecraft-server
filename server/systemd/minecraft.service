@@ -1,0 +1,15 @@
+[Unit]
+Description=Paper Minecraft server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=minecraft
+Group=minecraft
+WorkingDirectory=/srv/minecraft
+ExecStart=/usr/bin/java -Xms12G -Xmx12G -XX:+AlwaysPreTouch -XX:+DisableExplicitGC -XX:+ParallelRefProcEnabled -XX:+PerfDisableSharedMem -XX:+UnlockExperimentalVMOptions -XX:+UseG1GC -XX:G1HeapRegionSize=8M -XX:G1HeapWastePercent=5 -XX:G1MaxNewSizePercent=40 -XX:G1MixedGCCountTarget=4 -XX:G1MixedGCLiveThresholdPercent=90 -XX:G1NewSizePercent=30 -XX:G1RSetUpdatingPauseTimePercent=5 -XX:G1ReservePercent=20 -XX:InitiatingHeapOccupancyPercent=15 -XX:MaxGCPauseMillis=200 -XX:MaxTenuringThreshold=1 -XX:SurvivorRatio=32 -jar paper.jar --nogui
+ExecStop=/opt/minecraft/bin/mc-stop-wait.sh $MAINPID
+TimeoutStopSec=120
+SuccessExitStatus=0 143
+Restart=on-failure
+RestartSec=10

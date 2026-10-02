@@ -1,0 +1,6 @@
+[Unit]
+Description=Map sync every 10 minutes
+
+[Timer]
+OnBootSec=10min
+OnUnitActiveSec=10min
