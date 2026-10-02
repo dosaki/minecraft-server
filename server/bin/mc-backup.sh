@@ -8,7 +8,10 @@ MC_HOME=${MC_HOME:-/srv/minecraft}
 export AWS_REGION="$MC_REGION"
 
 exec 9>/run/mc-backup.lock
-flock 9
+if ! flock -w 1800 9; then
+  echo "could not get backup lock within 30 minutes (another backup or restore is running)" >&2
+  exit 1
+fi
 
 archive=$(mktemp /var/tmp/mc-backup.XXXXXX.tar.zst)
 saving_paused=0
@@ -20,7 +23,7 @@ trap cleanup EXIT
 
 if "$BIN/mc-rcon" save-off >/dev/null 2>&1; then
   saving_paused=1
-  "$BIN/mc-rcon" save-all flush >/dev/null
+  "$BIN/mc-rcon" --timeout 120 save-all flush >/dev/null
 else
   echo "RCON unavailable; archiving files as they are"
 fi

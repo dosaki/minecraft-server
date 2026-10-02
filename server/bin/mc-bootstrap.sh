@@ -8,9 +8,10 @@ MC_HOME=/srv/minecraft
 export AWS_REGION="$MC_REGION"
 
 # Start idle timer first (it will power off if any later step fails); other failures leave the instance safe from billing.
+# "enable" makes later boots start it from systemd even if the S3 config fetch fails.
 cp "$OPT"/systemd/* /etc/systemd/system/
 systemctl daemon-reload
-systemctl start mc-idle-check.timer
+systemctl enable --now mc-idle-check.timer
 
 param() { aws ssm get-parameter --name "$1" --with-decryption --query Parameter.Value --output text; }
 

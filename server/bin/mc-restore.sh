@@ -8,7 +8,13 @@ MC_HOME=/srv/minecraft
 stamp=$(date -u +%Y%m%dT%H%M%SZ)
 aside="$MC_HOME/restore-backup-$stamp"
 archive=$(mktemp /var/tmp/mc-restore.XXXXXX.tar.zst)
-trap 'rm -f "$archive"; systemctl start mc-idle-check.timer' EXIT
+# Re-arm the idle timer 30 min after exit: starting it directly would fire it at once
+# (OnBootSec has passed) and shut down while Paper is still starting.
+trap 'rm -f "$archive"; systemd-run --on-active=30min --unit="mc-idle-rearm-$stamp" systemctl start mc-idle-check.timer' EXIT
+
+# Hold the backup lock for the whole restore so the hourly backup cannot upload a world-less archive.
+exec 9>/run/mc-backup.lock
+if ! flock -w 1800 9; then echo "could not get backup lock within 30 minutes" >&2; exit 1; fi
 
 systemctl stop mc-idle-check.timer
 aws s3 cp --only-show-errors --region "$MC_REGION" "s3://$MC_BACKUP_BUCKET/$key" "$archive"

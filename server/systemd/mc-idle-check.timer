@@ -4,3 +4,6 @@ Description=Idle check every 30 minutes
 [Timer]
 OnBootSec=30min
 OnUnitActiveSec=30min
+
+[Install]
+WantedBy=timers.target

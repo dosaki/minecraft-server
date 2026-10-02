@@ -6,6 +6,19 @@ online for 30–60 minutes. Map: https://map.minecraft.dosaki.net
 
 Design: `docs/superpowers/specs/2026-10-02-minecraft-on-demand-design.md`
 
+## First deploy (once)
+
+1. `cd bootstrap && terraform init && terraform apply` (AWS profile `dosaki`), then migrate its
+   state to S3 as described in the comment in `bootstrap/main.tf`.
+2. Set GitHub repo variables `AWS_ACCOUNT_ID` and `AWS_REGION=eu-west-1`, and secret `BUDGET_EMAIL`.
+3. `scripts/set-players.sh players.json`
+4. Create the maintenance flag. It must exist BEFORE the first PR plan (the stack imports it):
+   `aws ssm put-parameter --profile dosaki --region eu-west-1 --name /minecraft/maintenance --type String --value false`
+5. Open the PR, check the plan, merge.
+
+**If a deploy dies** mid-way, the maintenance flag may stay `true`. Reset it:
+`aws ssm put-parameter --profile dosaki --region eu-west-1 --name /minecraft/maintenance --type String --value false --overwrite`
+
 ## Common tasks
 
 - **Change who can play:** copy `scripts/players.example.json` to `players.json` (gitignored),

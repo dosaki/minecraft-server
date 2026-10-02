@@ -17,7 +17,20 @@ cat > /usr/local/sbin/mc-fetch-config <<'EOF'
 set -euo pipefail
 source /etc/minecraft.env
 mkdir -p /opt/minecraft
-aws s3 sync "s3://$${MC_BACKUP_BUCKET}/config/" /opt/minecraft/ --delete --only-show-errors --region "$${MC_REGION}"
+ok=0
+for attempt in 1 2 3 4 5; do
+  if aws s3 sync "s3://$${MC_BACKUP_BUCKET}/config/" /opt/minecraft/ --delete --only-show-errors --region "$${MC_REGION}"; then
+    ok=1
+    break
+  fi
+  echo "config fetch attempt $attempt failed" >&2
+  sleep 15
+done
+if [ "$ok" != 1 ]; then
+  echo "config fetch failed after 5 attempts; shutting down in 30 minutes" >&2
+  shutdown -h +30 "minecraft bootstrap: config fetch failed"
+  exit 1
+fi
 chmod +x /opt/minecraft/bin/*
 exec /opt/minecraft/bin/mc-bootstrap.sh
 EOF

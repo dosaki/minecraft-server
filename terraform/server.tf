@@ -168,11 +168,18 @@ resource "aws_instance" "mc" {
   })
 
   # Config must be in S3 before first boot.
-  depends_on = [aws_s3_object.config]
+  depends_on = [
+    aws_s3_object.config,
+    aws_iam_role_policy.instance,
+    aws_iam_role_policy_attachment.ssm_core,
+    aws_route53_record.server,
+  ]
 
   tags = { Name = "minecraft-server" }
 
   lifecycle {
-    ignore_changes = [ami, user_data]
+    ignore_changes = [ami, user_data, associate_public_ip_address, subnet_id]
+    # Replacing the instance would swap in a fresh root volume, i.e. a brand-new world.
+    prevent_destroy = true
   }
 }

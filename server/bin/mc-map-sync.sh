@@ -10,4 +10,7 @@ if [[ ! -d $web ]]; then
   echo "no squaremap output yet; nothing to sync"
   exit 0
 fi
-aws s3 sync "$web" "s3://$MC_MAP_BUCKET/" --delete --only-show-errors --region "$MC_REGION"
+# A fresh disk has no tiles yet; do not let that wipe the published map.
+delete=(--delete)
+if [[ -z $(ls -A "$web/tiles" 2>/dev/null) ]]; then delete=(); fi
+aws s3 sync "$web" "s3://$MC_MAP_BUCKET/" "${delete[@]}" --only-show-errors --region "$MC_REGION"

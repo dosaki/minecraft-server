@@ -18,7 +18,8 @@ def run(tmp_path, backup_exit):
     log = tmp_path / "log"
     make_exe(bin_dir / "mc-backup.sh", f'echo backup >> "{log}"; exit {backup_exit}\n')
     make_exe(bin_dir / "mc-map-sync.sh", f'echo map >> "{log}"\n')
-    env = {**os.environ, "MC_BIN": str(bin_dir), "MC_POWEROFF": f'echo poweroff >> "{log}"'}
+    make_exe(bin_dir / "fake-timeout", 'shift\nexec "$@"\n')
+    env = {**os.environ, "MC_BIN": str(bin_dir), "MC_TIMEOUT_CMD": str(bin_dir / "fake-timeout"), "MC_POWEROFF": f'echo poweroff >> "{log}"'}
     subprocess.run(["bash", str(SCRIPT)], env=env, check=True)
     return log.read_text().split()
 

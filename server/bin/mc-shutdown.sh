@@ -3,6 +3,8 @@
 set -uo pipefail
 BIN=${MC_BIN:-/opt/minecraft/bin}
 
-"$BIN/mc-backup.sh" || echo "WARN: backup failed; powering off anyway" >&2
-"$BIN/mc-map-sync.sh" || echo "WARN: map sync failed; powering off anyway" >&2
+TIMEOUT=${MC_TIMEOUT_CMD:-timeout}
+
+$TIMEOUT 45m "$BIN/mc-backup.sh" || echo "WARN: backup failed; powering off anyway" >&2
+$TIMEOUT 20m "$BIN/mc-map-sync.sh" || echo "WARN: map sync failed; powering off anyway" >&2
 eval "${MC_POWEROFF:-systemctl poweroff}"
