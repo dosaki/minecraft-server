@@ -3,14 +3,15 @@ terraform {
   required_providers {
     aws = { source = "hashicorp/aws", version = "~> 6.0" }
   }
-  # After the first apply, uncomment and run `terraform init -migrate-state -backend-config="profile=dosaki"`.
-  # backend "s3" {
-  #   bucket       = "dosaki-minecraft-tfstate"
-  #   key          = "bootstrap/terraform.tfstate"
-  #   region       = "eu-west-1"
-  #   use_lockfile = true
-  #   encrypt      = true
-  # }
+  # The state bucket is created by this stack; the first apply used local state, then
+  # `terraform init -migrate-state -backend-config="profile=dosaki"` moved it here.
+  backend "s3" {
+    bucket       = "dosaki-minecraft-tfstate"
+    key          = "bootstrap/terraform.tfstate"
+    region       = "eu-west-1"
+    use_lockfile = true
+    encrypt      = true
+  }
 }
 
 variable "aws_profile" {
