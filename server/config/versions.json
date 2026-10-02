@@ -1,16 +1,16 @@
 {
   "paper": {
-    "version": "26.2",
-    "build": 129,
-    "url": "https://fill-data.papermc.io/v1/objects/b1d8f6bfa1b6101fa8e947b53041cb3bdf5540e7b83b6547ca19ba7edefeb083/paper-26.2-129.jar",
-    "sha256": "b1d8f6bfa1b6101fa8e947b53041cb3bdf5540e7b83b6547ca19ba7edefeb083"
+    "version": "26.3",
+    "build": 143,
+    "url": "https://fill-data.papermc.io/v1/objects/32cf4a93545e218525bc4536b017c6b5d5085d27d449d64266a6b23ba4d0cbb9/paper-26.3-143.jar",
+    "sha256": "32cf4a93545e218525bc4536b017c6b5d5085d27d449d64266a6b23ba4d0cbb9"
   },
   "plugins": [
     {
       "name": "squaremap",
-      "file": "squaremap-paper-mc26.2-1.3.15.jar",
-      "url": "https://cdn.modrinth.com/data/PFb7ZqK6/versions/ejPk2ZiR/squaremap-paper-mc26.2-1.3.15.jar",
-      "sha256": "68a4ecbcac39f83b9f974aab9d624a3a07001fae4982cc358ebfab73b49885af"
+      "file": "squaremap-paper-mc26.3-1.4.0.jar",
+      "url": "https://cdn.modrinth.com/data/PFb7ZqK6/versions/Bztlrcv0/squaremap-paper-mc26.3-1.4.0.jar",
+      "sha256": "953f2e2ce82acc9d8e4c52ca5d528cfa99d70042ce40f991599a760088b7ec93"
     }
   ]
 }
