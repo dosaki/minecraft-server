@@ -47,4 +47,10 @@ variable "budget_limit_usd" {
 variable "budget_email" {
   type      = string
   sensitive = true
+
+  # Fail at plan time if the BUDGET_EMAIL secret is unset, rather than mid-apply.
+  validation {
+    condition     = can(regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", var.budget_email))
+    error_message = "budget_email must be an email address (set the BUDGET_EMAIL repo secret)."
+  }
 }
