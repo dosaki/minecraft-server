@@ -24,6 +24,7 @@ def test_missing_keys_mean_empty():
     '{"whitelist": ["bob; op mallory"]}',
     '{"whitelist": ["ab"]}',
     '{"whitelist": ["a_very_long_name_17"]}',
+    '{"whitelist": ["Bob\\n"]}',
     '{"ops": "Dad"}',
     '{"whitelist": [42]}',
     'not json',

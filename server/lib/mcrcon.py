@@ -12,6 +12,10 @@ class RconError(Exception):
     pass
 
 
+class RconAuthError(RconError):
+    pass
+
+
 class Rcon:
     def __init__(self, host: str, port: int, password: str, timeout: float = 10):
         self._addr = (host, port)
@@ -22,11 +26,16 @@ class Rcon:
 
     def __enter__(self):
         self._sock = socket.create_connection(self._addr, timeout=self._timeout)
-        req_id = self._send(_LOGIN, self._password)
-        resp_id, _, _ = self._recv()
-        if resp_id == -1 or resp_id != req_id:
+        try:
+            req_id = self._send(_LOGIN, self._password)
+            resp_id, _, _ = self._recv()
+            if resp_id == -1:
+                raise RconAuthError("authentication failed")
+            if resp_id != req_id:
+                raise RconError("authentication failed")
+        except Exception:
             self._sock.close()
-            raise RconError("authentication failed")
+            raise
         return self
 
     def __exit__(self, *exc):

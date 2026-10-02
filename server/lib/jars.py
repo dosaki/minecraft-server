@@ -4,6 +4,8 @@ import os
 import tempfile
 import urllib.request
 
+USER_AGENT = "dosaki-minecraft-server/1.0 (+https://github.com/dosaki/minecraft-server)"
+
 
 def _sha256_file(path: str) -> str:
     h = hashlib.sha256()
@@ -13,7 +15,15 @@ def _sha256_file(path: str) -> str:
     return h.hexdigest()
 
 
-def ensure_file(url: str, sha256: str, dest: str, opener=urllib.request.urlopen) -> bool:
+def _default_opener(url: str):
+    """Default opener that sets User-Agent and timeout."""
+    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    return urllib.request.urlopen(req, timeout=60)
+
+
+def ensure_file(url: str, sha256: str, dest: str, opener=None) -> bool:
+    if opener is None:
+        opener = _default_opener
     if os.path.exists(dest) and _sha256_file(dest) == sha256:
         return False
     fd, tmp = tempfile.mkstemp(dir=os.path.dirname(dest) or ".", suffix=".part")
@@ -24,6 +34,7 @@ def ensure_file(url: str, sha256: str, dest: str, opener=urllib.request.urlopen)
         actual = _sha256_file(tmp)
         if actual != sha256:
             raise ValueError(f"checksum mismatch for {url}: expected {sha256}, got {actual}")
+        os.chmod(tmp, 0o644)
         os.replace(tmp, dest)
         return True
     finally:
@@ -31,7 +42,7 @@ def ensure_file(url: str, sha256: str, dest: str, opener=urllib.request.urlopen)
             os.remove(tmp)
 
 
-def sync_jars(manifest: dict, mc_home: str, opener=urllib.request.urlopen) -> None:
+def sync_jars(manifest: dict, mc_home: str, opener=None) -> None:
     paper = manifest["paper"]
     ensure_file(paper["url"], paper["sha256"], os.path.join(mc_home, "paper.jar"), opener)
     plugins_dir = os.path.join(mc_home, "plugins")

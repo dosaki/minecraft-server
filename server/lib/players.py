@@ -15,7 +15,7 @@ def _names(data: dict, key: str) -> list[str]:
     if not isinstance(value, list):
         raise PlayersError(f"{key} must be a list")
     for name in value:
-        if not isinstance(name, str) or not _NAME.match(name):
+        if not isinstance(name, str) or not _NAME.fullmatch(name):
             raise PlayersError(f"invalid Minecraft username in {key}: {name!r}")
     return value
 

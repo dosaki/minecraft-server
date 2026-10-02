@@ -5,7 +5,7 @@ import sys
 import time
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "lib"))
-from mcrcon import Rcon, RconError  # noqa: E402
+from mcrcon import Rcon, RconError, RconAuthError  # noqa: E402
 from players import PlayersError, commands_for, parse_players  # noqa: E402
 
 
@@ -24,6 +24,9 @@ def main() -> int:
                 for cmd in commands_for(players):
                     print(f"{cmd}: {rcon.command(cmd)}")
             return 0
+        except RconAuthError as e:
+            print(f"mc-apply-players: authentication failed: {e}", file=sys.stderr)
+            return 1
         except (OSError, RconError) as e:
             if time.monotonic() > deadline:
                 print(f"mc-apply-players: RCON never became ready: {e}", file=sys.stderr)
