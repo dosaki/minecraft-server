@@ -8,8 +8,9 @@ MC_HOME=/srv/minecraft
 stamp=$(date -u +%Y%m%dT%H%M%SZ)
 aside="$MC_HOME/restore-backup-$stamp"
 archive=$(mktemp /var/tmp/mc-restore.XXXXXX.tar.zst)
-trap 'rm -f "$archive"' EXIT
+trap 'rm -f "$archive"; systemctl start mc-idle-check.timer' EXIT
 
+systemctl stop mc-idle-check.timer
 aws s3 cp --only-show-errors --region "$MC_REGION" "s3://$MC_BACKUP_BUCKET/$key" "$archive"
 systemctl stop minecraft.service
 mkdir -p "$aside"

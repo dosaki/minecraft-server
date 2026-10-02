@@ -29,7 +29,7 @@ set +e
 tar -C "$MC_HOME" \
   --exclude=./logs --exclude=./cache --exclude=./libraries --exclude=./versions \
   --exclude=./paper.jar --exclude='./plugins/*.jar' --exclude=./plugins/.paper-remapped \
-  --exclude=./plugins/squaremap/web \
+  --exclude=./plugins/squaremap/web --exclude='./restore-backup-*' \
   -cf - . | zstd -q -T0 -10 -f -o "$archive"
 rc=("${PIPESTATUS[@]}")
 set -e
