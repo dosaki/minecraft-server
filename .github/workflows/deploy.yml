@@ -54,14 +54,13 @@ jobs:
       - name: Warn players and stop server
         if: steps.plan.outputs.changes == 'true'
         run: |
-          # Only a missing output means "no instance yet"; any other failure (backend, auth) must stop the deploy.
-          # With empty state terraform exits 0 with no output; with other outputs it exits 1 with "not found".
-          if id=$(terraform -chdir=terraform output -no-color -raw instance_id 2>/tmp/out.err); then
-            :
-          elif grep -qiE 'not found|no outputs' /tmp/out.err; then
-            id=""
-          else
-            cat /tmp/out.err >&2
+          # `output -json` prints {} before the first apply, so a missing key means "no instance yet",
+          # while a backend or auth failure exits non-zero and stops the deploy. (`-raw` exits 0 and
+          # prints a warning on stdout when there are no outputs, which was then used as the ID.)
+          outputs=$(terraform -chdir=terraform output -json)
+          id=$(jq -r '.instance_id.value // empty' <<<"$outputs")
+          if [[ -n $id && ! $id =~ ^i-[0-9a-f]+$ ]]; then
+            echo "Unexpected instance_id output: $id" >&2
             exit 1
           fi
           scripts/ci-stop-server.sh "$id"
