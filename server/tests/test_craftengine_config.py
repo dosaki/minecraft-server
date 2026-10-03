@@ -11,6 +11,7 @@ def test_template_points_pack_at_game_port():
     assert re.search(r"^    port: \"auto\"$", text, re.M)
     assert re.search(r"^    send-on-join: true$", text, re.M)
     assert re.search(r"^    kick-if-declined: true$", text, re.M)
+    assert re.search(r"^    kick-if-failed-to-apply: true$", text, re.M)
     assert set(re.findall(r"@[A-Z_]+@", text)) == {"@RECORD_NAME@"}
 
 

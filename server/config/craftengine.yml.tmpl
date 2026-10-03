@@ -4,7 +4,8 @@
 #     port, so no S3 or other host keys are needed.
 #   resource-pack.self-host.ip/url: the DNS record instead of the auto-detected public IP, which
 #     changes every boot. port stays "auto" (shares 25565, no new security group rule).
-#   resource-pack.delivery.send-on-join / kick-if-declined: true, so the pack is required (default).
+#   resource-pack.delivery.send-on-join / kick-if-declined: true (default) and kick-if-failed-to-apply: true,
+#     so the pack is required: players who decline it or whose download fails are kicked.
 # Do not modify this value
 ___version___: '114'
 # Enables or disables metrics collection via BStats
@@ -226,7 +227,7 @@ resource-pack:
     # Send the resource pack on joining the server
     send-on-join: true
     kick-if-declined: true
-    kick-if-failed-to-apply: false
+    kick-if-failed-to-apply: true
 
     # Whether a verified player UUID is required to download the resource pack
     strict-player-uuid-validation: true
