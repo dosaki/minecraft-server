@@ -17,6 +17,12 @@
       "file": "craft-engine-paper-plugin-26.9.2.jar",
       "url": "https://cdn.modrinth.com/data/tRX6FMfQ/versions/mwFiNxVO/craft-engine-paper-plugin-26.9.2.jar",
       "sha256": "19535f1987e8a27ebe8c6d811e7deae9a1f05dbd3ef3359435aff5a3d819e0f9"
+    },
+    {
+      "name": "onelife",
+      "file": "onelife-0.1.0.jar",
+      "url": "https://github.com/dosaki/minecraft-onelife/releases/download/v0.1.0/onelife-0.1.0.jar",
+      "sha256": "acbd0abd34a633cb83c80e802ffe3c80a58dc08064369c562f7f269da9792abc"
     }
   ]
 }
