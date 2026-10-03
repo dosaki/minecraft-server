@@ -11,6 +11,18 @@
       "file": "squaremap-paper-mc26.3-1.4.0.jar",
       "url": "https://cdn.modrinth.com/data/PFb7ZqK6/versions/Bztlrcv0/squaremap-paper-mc26.3-1.4.0.jar",
       "sha256": "953f2e2ce82acc9d8e4c52ca5d528cfa99d70042ce40f991599a760088b7ec93"
+    },
+    {
+      "name": "craftengine",
+      "file": "craft-engine-paper-plugin-26.9.2.jar",
+      "url": "https://cdn.modrinth.com/data/tRX6FMfQ/versions/mwFiNxVO/craft-engine-paper-plugin-26.9.2.jar",
+      "sha256": "19535f1987e8a27ebe8c6d811e7deae9a1f05dbd3ef3359435aff5a3d819e0f9"
+    },
+    {
+      "name": "onelife",
+      "file": "onelife-0.1.2.jar",
+      "url": "https://github.com/dosaki/minecraft-onelife/releases/download/v0.1.2/onelife-0.1.2.jar",
+      "sha256": "70fee19220d55a341a24d9bc980c4271808308accdef903a00eb573649283c30"
     }
   ]
 }
