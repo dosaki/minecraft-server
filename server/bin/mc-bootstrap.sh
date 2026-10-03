@@ -30,6 +30,15 @@ printf '%s' "$rcon_password" > /etc/minecraft/rcon.pass
 sed "s|@RCON_PASSWORD@|${rcon_password}|" "$OPT/config/server.properties.tmpl" > "$MC_HOME/server.properties"
 chmod 640 "$MC_HOME/server.properties"
 cp "$OPT/config/squaremap.yml" "$MC_HOME/plugins/squaremap/config.yml"
+# Our datapacks (gamerules etc.) are replaced wholesale each boot; the game enables new packs
+# found in world/datapacks on load, including when it is generating a fresh world.
+for pack in "$OPT"/datapacks/*/; do
+  [[ -d $pack ]] || continue
+  name=$(basename "$pack")
+  rm -rf "$MC_HOME/world/datapacks/$name"
+  install -d "$MC_HOME/world/datapacks"
+  cp -r "$pack" "$MC_HOME/world/datapacks/$name"
+done
 echo "eula=true" > "$MC_HOME/eula.txt"
 # SSM /minecraft/players is the source of truth: start empty, then add via RCON (resolves UUIDs).
 echo '[]' > "$MC_HOME/whitelist.json"
@@ -52,8 +61,3 @@ else
 fi
 rm -f "$err"
 printf '%s' "$players" | "$OPT/bin/mc-apply-players"
-
-# Gamerules live in the world's level.dat, so re-assert them every boot to survive a regenerated
-# or restored world. 26.x names rules by registry id (the old camelCase name is only a lang key).
-# Vanilla rounds up: with 3 players online, 2 must sleep to skip the night.
-"$OPT/bin/mc-rcon" gamerule players_sleeping_percentage 50
