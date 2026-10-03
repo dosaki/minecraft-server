@@ -32,6 +32,7 @@ A Minecraft server for a family that:
 | World | Fresh |
 | Instance | EC2 `m7g.xlarge` (4 vCPU / 16 GB, Graviton), Amazon Linux 2023 arm64, stopped ⇄ running |
 | Disk | 30 GB gp3 root volume, kept while the instance is stopped |
+| Plugins | OneLife (gravestones) and CraftEngine; CraftEngine self-hosts the required resource pack on the game port (25565) |
 | Map | squaremap, static tiles in S3 behind CloudFront |
 | Backups | S3 only (no EBS snapshots), GFS |
 | IaC | Terraform, state in S3 with native lockfile |
@@ -147,7 +148,7 @@ A Minecraft server for a family that:
 
 ### Archive contents
 
-- The contents of `/srv/minecraft`, minus `logs/`, `cache/`, `libraries/`, `versions/`, the Paper jar, and squaremap's `web/` and tile output.
+- The contents of `/srv/minecraft`, minus `logs/`, `cache/`, `libraries/`, `versions/`, the Paper jar, squaremap's `web/` and tile output, and CraftEngine's `libs/` and `generated/`.
 - That covers the world folders, plugin data and configs, and server properties.
 - Format: `tar` + `zstd`, built in `/var/tmp`, then uploaded.
 
