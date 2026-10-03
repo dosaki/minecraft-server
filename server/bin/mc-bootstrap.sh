@@ -52,3 +52,8 @@ else
 fi
 rm -f "$err"
 printf '%s' "$players" | "$OPT/bin/mc-apply-players"
+
+# Gamerules live in the world's level.dat, so re-assert them every boot to survive a regenerated
+# or restored world. 26.x names rules by registry id (the old camelCase name is only a lang key).
+# Vanilla rounds up: with 3 players online, 2 must sleep to skip the night.
+"$OPT/bin/mc-rcon" gamerule players_sleeping_percentage 50
