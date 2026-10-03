@@ -1,0 +1,7 @@
+{
+  "pack": {
+    "description": "Family server gamerules",
+    "min_format": 121,
+    "max_format": 999
+  }
+}
