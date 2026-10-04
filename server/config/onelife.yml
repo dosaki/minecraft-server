@@ -1,0 +1,14 @@
+# OneLife plugin config, copied to plugins/OneLife/config.yml at every boot (mc-bootstrap.sh).
+# Change settings here and deploy; they apply on the next server start.
+# Largest encoded size of a grave's items, in bytes. Over this, shulker boxes (largest first) spill on the ground.
+size-cap-bytes: 524288
+# How far (in blocks) to look for a free space for a grave.
+search-radius: 3
+# Share of the stored XP given to whoever breaks a grave for the first time.
+xp-fraction: 0.5
+# One Life is a per-player choice by default. Read at startup only.
+one-life:
+  # true: every player is always in One Life mode and is never asked.
+  required: false
+# Run "/ce reload pack" once after CraftEngine's first load, so the resource pack includes the gravestone.
+regenerate-pack-on-start: true

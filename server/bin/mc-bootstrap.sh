@@ -19,7 +19,7 @@ rpm -q java-25-amazon-corretto-headless zstd python3 >/dev/null 2>&1 \
   || dnf install -y java-25-amazon-corretto-headless zstd python3
 
 id minecraft >/dev/null 2>&1 || useradd --system --home-dir "$MC_HOME" --shell /sbin/nologin minecraft
-install -d -o minecraft -g minecraft "$MC_HOME" "$MC_HOME/plugins" "$MC_HOME/plugins/squaremap" "$MC_HOME/plugins/CraftEngine"
+install -d -o minecraft -g minecraft "$MC_HOME" "$MC_HOME/plugins" "$MC_HOME/plugins/squaremap" "$MC_HOME/plugins/CraftEngine" "$MC_HOME/plugins/OneLife"
 install -d -m 750 -o root -g minecraft /etc/minecraft
 
 rcon_password=$(param "$MC_RCON_PARAM")
@@ -30,6 +30,7 @@ printf '%s' "$rcon_password" > /etc/minecraft/rcon.pass
 sed "s|@RCON_PASSWORD@|${rcon_password}|" "$OPT/config/server.properties.tmpl" > "$MC_HOME/server.properties"
 chmod 640 "$MC_HOME/server.properties"
 cp "$OPT/config/squaremap.yml" "$MC_HOME/plugins/squaremap/config.yml"
+cp "$OPT/config/onelife.yml" "$MC_HOME/plugins/OneLife/config.yml"
 # Full default config plus our edits, replaced each boot; the pack URL is the DNS record on the game port.
 sed "s|@RECORD_NAME@|${MC_RECORD_NAME}|g" "$OPT/config/craftengine.yml.tmpl" > "$MC_HOME/plugins/CraftEngine/config.yml"
 # Our datapacks (gamerules etc.) are replaced wholesale each boot; the game enables new packs

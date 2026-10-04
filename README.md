@@ -27,6 +27,7 @@ Design: `docs/superpowers/specs/2026-10-02-minecraft-on-demand-design.md`
 - **Restore a backup:** in a session, `sudo /opt/minecraft/bin/mc-restore.sh father/2026-W40.tar.zst`
 - **Deploy:** merge a PR to `main`. Players get a 5-minute warning, then the server stops and Terraform applies.
 - **Plugins:** OneLife (gravestones) and CraftEngine. CraftEngine self-hosts the resource pack on the game port (25565, no extra port or bucket); the pack is required, players who decline are kicked. Its config is `server/config/craftengine.yml.tmpl`, rendered at boot.
+- **One Life required:** set `one-life.required: true` in `server/config/onelife.yml` and deploy. Every player is then always in One Life mode and never asked. `false` (the default) lets each player choose per life.
 - **Tests:** `make test lint`
 
 ## Security notes
