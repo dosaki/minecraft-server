@@ -20,9 +20,9 @@
     },
     {
       "name": "onelife",
-      "file": "onelife-0.2.0.jar",
-      "url": "https://github.com/dosaki/minecraft-onelife/releases/download/v0.2.0/onelife-0.2.0.jar",
-      "sha256": "7bb367997ea7e451b816a444d912b17a152b797400dd3498d8c346d9837a1433"
+      "file": "onelife-0.3.0.jar",
+      "url": "https://github.com/dosaki/minecraft-onelife/releases/download/v0.3.0/onelife-0.3.0.jar",
+      "sha256": "1c9b0bf3f18b76598b5b60236077a6a6362a24e9ecf9068b78df7d688adb4ea7"
     }
   ]
 }
