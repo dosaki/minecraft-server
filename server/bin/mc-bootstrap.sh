@@ -13,6 +13,11 @@ cp "$OPT"/systemd/* /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable --now mc-idle-check.timer
 
+# mc-fetch-config's sync (written once by user data) skips same-size files that are older locally, e.g. a
+# versions.json bump. Sync again comparing timestamps exactly so every config change reaches this boot.
+aws s3 sync "s3://$MC_BACKUP_BUCKET/config/" "$OPT/" --exact-timestamps --delete --only-show-errors
+chmod +x "$OPT"/bin/*
+
 param() { aws ssm get-parameter --name "$1" --with-decryption --query Parameter.Value --output text; }
 
 rpm -q java-25-amazon-corretto-headless zstd python3 >/dev/null 2>&1 \
